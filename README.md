@@ -1,2 +1,5 @@
 # tdlib-rest
-Project status: TBD, v 0.0.0
+
+## Project status
+
+WIP TBD, v.0.0.0
