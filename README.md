@@ -4,4 +4,4 @@
 
 WIP TBD, v.0.0.0
 
-License: to be determined; Boost 1.0 like in http://github.com/tdlib/td ?
+License: to be determined; the same Boost 1.0 as in http://github.com/tdlib/td ?
