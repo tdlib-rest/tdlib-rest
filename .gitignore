@@ -13,4 +13,6 @@ build
 td
 tdb
 *log
+c
+python
 
