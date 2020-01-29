@@ -4,7 +4,11 @@ project(TdlibRest VERSION 0.1.0 LANGUAGES CXX)
 
 find_package(Td 1.5.5 REQUIRED)
 
-add_executable(tdlib_rest_httpd main.cpp)
+file(GLOB SOURCES
+    ./*.h
+    ./*.cpp
+)
+add_executable(tdlib_rest_httpd ${SOURCES})
 target_link_libraries(tdlib_rest_httpd PRIVATE Td::TdJson)
 set_property(TARGET tdlib_rest_httpd PROPERTY CXX_STANDARD 11)
 
