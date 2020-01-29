@@ -6,11 +6,9 @@ v.0.1.0 - works a bit, untested.
 
 License: BSD3
 
-## Docs
+## Http Api Reference
 
- * http://127.0.0.1:12222/?request=set_log_verbosity_level&level=3
-
-level is int, it can be either 0 for quiet, or 3 for verbose.
+ * http://127.0.0.1:12222/?request=set_log_verbosity_level&level=3 — level is an int, it can be either 0 for quiet, or 3 for verbose.
 
  * http://127.0.0.1:12222/?request=poll
 
