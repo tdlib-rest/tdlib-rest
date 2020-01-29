@@ -1,5 +1,7 @@
 #include <iostream> //for cerr/cout
 
+#include <unistd.h> //for sleep()
+
 #include <inttypes.h>
 #include <string>
 #include <memory>
@@ -28,11 +30,6 @@
 tdapi_poll_duration_seconds_type WAIT_TIMEOUT_SECONDS = 10.0;  // double
 tdapi_poll_duration_seconds_type WAIT_TIMEOUT_0_SECONDS = 0.0;  // double
 
-// eternal loop
-void httpd_init_and_loop (program_options_type& program_options) {
-    //todo
-}
-
 namespace http
 {
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;
@@ -42,7 +39,7 @@ namespace http
 	{
 		public:
 
-			HTTPConnection (std::string serverhost, std::shared_ptr<boost::asio::ip::tcp::socket> socket, program_options_type program_options);
+			HTTPConnection (std::string serverhost, std::shared_ptr<boost::asio::ip::tcp::socket> socket, program_options_type program_options, tdapi_client_type tdclient);
 			void Receive ();
 
 		private:
@@ -67,6 +64,8 @@ namespace http
 			std::string pass;
 			std::string expected_host;
 
+            tdapi_client_type m_tdclient;
+
 			static std::map<uint32_t, uint32_t> m_Tokens; // token->timestamp in seconds
 	};
 
@@ -74,7 +73,7 @@ namespace http
 	{
 		public:
 
-			HTTPServer (const std::string& address, int port, program_options_type program_options);
+			HTTPServer (const std::string& address, int port, program_options_type program_options, tdapi_client_type tdclient);
 			~HTTPServer ();
 
 			void Start ();
@@ -96,13 +95,16 @@ namespace http
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			std::string m_Hostname;
+
             program_options_type m_program_options;
+
+            tdapi_client_type m_tdclient;
 	};
 
     void ShowJsonResponse (std::stringstream& s, std::string json_response);
 
 	static void ShowError(std::stringstream& s, const std::string& string) {
-		s << "Error: " << string << "\n";
+		s << string;
 	}
 } // namespace http
 
@@ -121,11 +123,17 @@ namespace http {
 
 	static std::string ConvertTime (uint64_t time);
 
-	static void SetLogLevel (const std::string& level_str) {
+	static bool SetLogLevel (const std::string& level_str) {
         std::stringstream s(level_str);
         int level;
         s >> level;
+        if (s.fail()) {
+            std::cout << "httpd: set_log_verbosity_level: not an int: level='" << level_str << "'\n";
+            return false;
+        }
+
         tdapi_set_log_verbosity_level(level);
+        return true;
 	}
 
     void ShowJsonResponse (std::stringstream& s, std::string json_response) {
@@ -142,13 +150,13 @@ namespace http {
 		return date;
 	}
 
-	HTTPConnection::HTTPConnection (std::string hostname, std::shared_ptr<boost::asio::ip::tcp::socket> socket, program_options_type program_options):
-		m_Socket (socket), m_BufferLen (0), expected_host(hostname)
+	HTTPConnection::HTTPConnection (std::string hostname, std::shared_ptr<boost::asio::ip::tcp::socket> socket, program_options_type program_options, tdapi_client_type tdclient):
+		m_Socket (socket), m_BufferLen (0), expected_host(hostname), m_tdclient(tdclient)
 	{
 		/* cache options */
 		needAuth = false; //todo program_options.http_basic_auth;
-        user = ""; //todo program_options.http_basic_auth_username;
-		pass = ""; //todo program_options.http_basic_auth_password;
+        user = "x"; //todo program_options.http_basic_auth_username;
+		pass = "x"; //todo program_options.http_basic_auth_password;
 	}
 
 	void HTTPConnection::Receive ()
@@ -173,16 +181,21 @@ namespace http {
 
 	void HTTPConnection::RunRequest ()
 	{
+        std::cout << "httpd: HTTPConnection::RunRequest\n";
 		HTTPReq request;
 		int ret = request.parse(m_Buffer);
 		if (ret < 0) {
 			m_Buffer[0] = '\0';
 			m_BufferLen = 0;
+            std::cerr << "httpd: HTTPConnection::RunRequest: error: bad request\n";
 			return; /* error */
 		}
-		if (ret == 0)
+		if (ret == 0) {
+            std::cout << "httpd: HTTPConnection::RunRequest: waiting for more data\n";
 			return; /* need more data */
+        }
 
+        std::cout << "httpd: HTTPConnection::RunRequest: calling HandleRequest\n";
 		HandleRequest (request);
 	}
 
@@ -214,17 +227,18 @@ namespace http {
 		return false;
 	}
 
-	void HTTPConnection::HandleRequest (const HTTPReq & req)
-	{
+	void HTTPConnection::HandleRequest (const HTTPReq & req) {
+		std::cout << "httpd: HTTPConnection::HandleRequest entered\n";
+
 		std::stringstream s;
 		std::string content;
 		HTTPRes res;
 
-		std::cout << "HTTPServer: request.uri: ", req.uri;
+		std::cout << "httpd: HTTPConnection::HandleRequest: request.uri: " << req.uri << "\n";
 
 		if (needAuth && !CheckAuth(req)) {
 			res.code = 401;
-			res.add_header("WWW-Authenticate", "Basic realm=\"WebAdmin\"");
+			res.add_header("WWW-Authenticate", "Basic realm=\"tdlib-rest\"");
 			SendReply(res, content);
 			return;
 		}
@@ -245,7 +259,7 @@ namespace http {
 			{
 				/* deny request as it's from a non whitelisted hostname */
 				res.code = 403;
-				content = "host mismatch";
+				content = "{\"error\":\"host-header-mismatch\"}";
 				SendReply(res, content);
 				return;
 			}
@@ -256,24 +270,37 @@ namespace http {
 	    url.parse(req.uri);
 	    url.parse_query(params);
   		std::string request = params["request"];
+		std::cout << "httpd: request='"<<request<<"'\n";
         if(request == HTTP_COMMAND_LOG_LEVEL) {
 			HandleCommand (req, res, s, url, params, request);
 		} else {
             if(request == HTTP_PAGE_SEND_REQUEST) { 
-                ShowJsonResponse (s, "HTTP_PAGE_SEND_REQUEST::{\"json_response\":true}::" + request);
+          		std::string request_json = http::UrlDecode(params["request_json"]);
+        		std::cout << "httpd: request_json='"<<request_json<<"'\n";
+                tdapi_send_request (m_tdclient, request_json.c_str());
+                ShowJsonResponse (s, "{\"ok\":true}");
             } else {
                 if(request == HTTP_PAGE_POLL_FOR_UPDATE) {
-                    ShowJsonResponse (s, "HTTP_PAGE_POLL_FOR_UPDATE::{\"json_response\":true}::" + request); 
+                    // Might return nullptr
+                    auto json_result = tdapi_poll_for_update (m_tdclient, WAIT_TIMEOUT_0_SECONDS);
+                    if (!json_result) {
+                        json_result = "{\"is_empty\":true}";
+                    }
+                    ShowJsonResponse (s, json_result); 
                 } else {
 			        res.code = 400;
-			        ShowError(s, "Unknown request: " + request);
+            		std::cerr << "httpd: Error: Unknown request='"<<request<<"'\n";
+			        ShowError(s, "{\"error\": \"unknown_request\"}");
+            		content = s.str ();
+            		SendReply (res, content);
 			        return;
                 }
             }
 		}
 
-		res.code = 200;
 		content = s.str ();
+   		std::cerr << "httpd: sending HTTP 200, content='"<<content<<"'\n";
+		res.code = 200;
 		SendReply (res, content);
 	}
 
@@ -283,13 +310,18 @@ namespace http {
 	{
 		if (cmd == HTTP_COMMAND_LOG_LEVEL) {
 			auto level = params["level"];
-			SetLogLevel (level);
+			bool ok = SetLogLevel (level);
+    		if(ok) {
+                res.code = 200;
+                s << "{\"ok\":true}";
+            } else {
+    			res.code = 400;
+       			ShowError(s, "{\"error\": \"invalid-level\"}");
+            }
 		} else {
 			res.code = 400;
-			ShowError(s, "Unknown request: " + cmd);
-			return;
+			ShowError(s, "{\"error\": \"unknown-request\"}");
 		}
-		res.code = 200;
 		auto content = s.str ();
 		SendReply (res, content);
 	}
@@ -305,10 +337,10 @@ namespace http {
 			std::bind (&HTTPConnection::Terminate, shared_from_this (), std::placeholders::_1));
 	}
 
-	HTTPServer::HTTPServer (const std::string& address, int port, program_options_type program_options):
+	HTTPServer::HTTPServer (const std::string& address, int port, program_options_type program_options, tdapi_client_type tdclient):
 		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port)),
-		m_Hostname(address), m_program_options(program_options)
+		m_Hostname(address), m_program_options(program_options), m_tdclient(tdclient)
 	{
 	}
 
@@ -319,9 +351,9 @@ namespace http {
 
 	void HTTPServer::Start ()
 	{
-		bool needAuth=false; //todo config::GetOption("http.auth", needAuth);
-		std::string user=""; //todo config::GetOption("http.user", user);
-		std::string pass=""; //todo config::GetOption("http.pass", pass);
+		//bool needAuth=false; //todo config::GetOption("http.auth", needAuth);
+		//std::string user=""; //todo config::GetOption("http.user", user);
+		//std::string pass=""; //todo config::GetOption("http.pass", pass);
 		m_IsRunning = true;
 		m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
 		m_Acceptor.listen ();
@@ -350,7 +382,7 @@ namespace http {
 			}
 			catch (std::exception& ex)
 			{
-				std::cerr << "HTTPServer: runtime exception: " << ex.what () << "\n";
+				std::cerr << "httpd.run: runtime exception: " << ex.what () << "\n";
 			}
 		}
 	}
@@ -368,19 +400,45 @@ namespace http {
 		if (ecode)
 		{
 			if(newSocket) newSocket->close();
-			std::cerr << "HTTP Server: error handling accept " << ecode.message() << "\n";
+			std::cerr << "httpd: error handling accept " << ecode.message() << "\n";
 			if(ecode != boost::asio::error::operation_aborted)
 				Accept();
 			return;
 		}
+        std::cout << "httpd: new_conn\n";
 		CreateConnection(newSocket);
 		Accept ();
 	}
 
 	void HTTPServer::CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
 	{
-		auto conn = std::make_shared<HTTPConnection> (m_Hostname, newSocket, m_program_options);
+		auto conn = std::make_shared<HTTPConnection> (m_Hostname, newSocket, m_program_options, m_tdclient);
 		conn->Receive ();
 	}
 } // http
+
+
+//td
+
+// eternal loop
+void httpd_init_and_loop (program_options_type& program_options) {
+    auto port = 12222;
+    auto host = "127.0.0.1";
+
+    std::cout << "Starting tdapi...\n";
+    tdapi_client_type client = tdapi_init (program_options);
+    std::cout << "Started tdapi.\n";
+
+    std::cout << "Starting httpd on host '"<<host<<"', port "<<port<<"...\n";
+    http::HTTPServer httpd (host, port, program_options, client); //todo read port and host from program_options
+    httpd.Start ();
+    std::cout << "Started httpd. Entering httpd eternal loop...\n";
+    while(true) {
+        sleep(60); //seconds
+    }
+
+    //std::cout << "Stopping httpd...\n";
+    //httpd.Stop ();
+    //std::cout << "httpd exited.\n";
+}
 
