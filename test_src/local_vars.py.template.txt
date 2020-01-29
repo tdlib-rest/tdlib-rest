@@ -1,0 +1,5 @@
+
+LOCAL_API_ID_STR="api-id-here"
+LOCAL_API_HASH_STR="abcdef"
+LOCAL_LANG_CODE="ru"
+
