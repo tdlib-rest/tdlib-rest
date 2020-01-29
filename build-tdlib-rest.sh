@@ -1,14 +1,14 @@
 # based on https://github.com/tdlib/td/tree/master/example/cpp instructions.
 
-. ./tdenv_local.sh
+. ./build_env_local.sh
 
-echo "building the examples..."
+echo "building the tdlib_rest httpd..."
 
 pushd $tdhome
 tdhome_abs=`pwd`
 popd
 
-pushd .
+pushd main_src
 
 mkdir -pv build
 cd build
@@ -17,9 +17,8 @@ cmake -DCMAKE_BUILD_TYPE=Release -DTd_DIR=$tdhome_abs/example/cpp/td/lib/cmake/T
 echo "cmake --build ."
 cmake --build .
 
-#Documentation for all available classes and methods can be found at https://core.telegram.org/tdlib/docs .
-
-echo "To run tdjson_example you may need to manually copy a tdjson shared library from $tdhome_abs/bin to a directory containing built binaries."
+echo "Documentation for all available classes and methods can be found at https://core.telegram.org/tdlib/docs ."
+echo "To run this, you may need to manually copy a tdjson shared library from $tdhome_abs/bin to a directory containing built binaries."
 
 #cp -v $tdhome/bin/tdjson.so
 
