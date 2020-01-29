@@ -2,7 +2,7 @@
 
 . ./build_env_local.sh
 
-echo "building the tdlib_rest httpd..."
+echo "building the tdlib-rest httpd..."
 
 pushd $tdhome
 tdhome_abs=`pwd`
