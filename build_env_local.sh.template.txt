@@ -1,0 +1,3 @@
+# edit this file and save this file as build_env_local.sh
+
+export tdhome="../../td/"
