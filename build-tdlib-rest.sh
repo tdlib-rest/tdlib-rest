@@ -12,8 +12,10 @@ pushd main_src
 
 mkdir -pv build
 cd build
-echo "cmake -DCMAKE_BUILD_TYPE=Release -DTd_DIR=$tdhome_abs/example/cpp/td/lib/cmake/Td .."
-cmake -DCMAKE_BUILD_TYPE=Release -DTd_DIR=$tdhome_abs/example/cpp/td/lib/cmake/Td ..
+#build_type="Release"
+build_type="Debug"
+echo "cmake -DCMAKE_BUILD_TYPE=$build_type -DTd_DIR=$tdhome_abs/example/cpp/td/lib/cmake/Td .."
+cmake -DCMAKE_BUILD_TYPE=$build_type -DTd_DIR=$tdhome_abs/example/cpp/td/lib/cmake/Td ..
 echo "cmake --build ."
 cmake --build .
 

@@ -1,5 +1,27 @@
 
 LOCAL_API_ID_STR="api-id-here"
 LOCAL_API_HASH_STR="abcdef"
-LOCAL_LANG_CODE="ru"
+
+# IETF language tag of the user's operating system language; must be non-empty. 
+# https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1tdlib_parameters.html#a6d8a2faa45d34d30147819fc504e37a7
+LOCAL_LANG_CODE="en"
+
+LOCAL_CHAT_ID_STR="123"
+
+LOCAL_DB_ENCRYPTION_KEY_STR="secret-password-here"
+
+LOCAL_BOT_TOKEN_STR="put-bot-token-here"
+
+LOCAL_SOCKS5_HOSTNAME_STR="host"
+
+LOCAL_SOCKS5_PORT_STR="123"
+
+LOCAL_SOCKS5_USERNAME_STR="someusername"
+
+LOCAL_SOCKS5_PASSWORD_STR="somepassword"
+
+LOCAL_BOT_USER_ID_STR="123"
+
+tdlib_rest_hostname_str="127.0.0.1"
+tdlib_rest_port_str = "12222"
 
