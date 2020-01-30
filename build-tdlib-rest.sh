@@ -25,3 +25,7 @@ echo "To run this, you may need to manually copy a tdjson shared library from $t
 #cp -v $tdhome/bin/tdjson.so
 
 popd
+
+echo "now run:"
+echo "  $ ./main_src/build/tdlib_rest_httpd"
+
