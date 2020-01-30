@@ -57,6 +57,110 @@ def td_json_client_receive(client, wait_timeout):
 #no-op
 def td_json_client_destroy(client):
     pass
+
+
+
+def compose_input_message_content_for_messageSticker(result, msg, content):
+    input_message_content = {
+        "@type": "inputMessageSticker", # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1input_message_sticker.html#a32993a144616da02b107492376eae63a
+        "sticker": {
+            "@type": "inputFileRemote",
+            "id": content["sticker"]["sticker"]["remote"]["id"]
+        },
+        "thumbnail": {
+            "@type": "inputThumbnail",
+            "width": int(content["sticker"]["thumbnail"]["width"]*0.5),
+            "height": int(content["sticker"]["thumbnail"]["height"]*0.5),
+            "thumbnail": {
+                "@type": "inputFileRemote",
+                "id": content["sticker"]["thumbnail"]["photo"]["remote"]["id"]
+            }
+        },
+        "width": content["sticker"]["width"],
+        "height": content["sticker"]["height"]
+    }
+    return input_message_content
+
+"""
+"content": {
+      "@type": "messageAnimation",
+      "animation": {
+        "@type": "animation",
+        "animation": {...},
+        "duration": 4,
+        "file_name": "giphy.mp4",
+        "height": 246,
+        "mime_type": "video/mp4",
+        "minithumbnail": {
+          "@type": "minithumbnail",
+          "data": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDACgcHiMeGSgjISMtKygwPGRBPDc3PHtYXUlkkYCZlo+AjIqgtObDoKrarYqMyP/L2u71////m8H////6/+b9//j/2wBDASstLTw1PHZBQXb4pYyl+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj/wAARCAAUACgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDFooooAKKKtWcSSmTeMgDFAFWirM8Cr/qgzY+8T2ooArUUUUAFWbRyrOMAgrnkUUUMCYvujA2qAx5AFFFFSM//2Q==",
+          "height": 20,
+          "width": 40
+        },
+        "thumbnail": {
+          "@type": "photoSize",
+          "height": 164,
+          "photo": {
+            "@type": "file",
+            "expected_size": 3489,
+            "id": 35,
+            "local": {
+              "@type": "localFile",
+              "can_be_deleted": false,
+              "can_be_downloaded": true,
+              "download_offset": 0,
+              "downloaded_prefix_size": 0,
+              "downloaded_size": 0,
+              "is_downloading_active": false,
+              "is_downloading_completed": false,
+              "path": ""
+            },
+            "remote": {
+              "@type": "remoteFile",
+              "id": "AAMCBAADHQJM2mO-AAIQZl4yuHFdYe_nSiZV_qHMslZAosl0AAI_AgACQyp0UQc6Cqza5N7GOF6iGwAEAQAHbQADs5YAAhgE",
+              "is_uploading_active": false,
+              "is_uploading_completed": true,
+              "unique_id": "AQADOF6iGwAEs5YAAg",
+              "uploaded_size": 3489
+            },
+            "size": 3489
+          },
+          "type": "m",
+          "width": 320
+        },
+        "width": 480
+      },
+      "caption": {
+        "@type": "formattedText",
+        "entities": [],
+        "text": ""
+      },
+      "is_secret": false
+    }
+"""
+def compose_input_message_content_for_messageAnimation(result, msg, content):
+    input_message_content = {
+        "@type": "inputMessageAnimation", # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1input_message_animation.html
+        "animation": {
+            "@type": "inputFileRemote",
+            "id": content["animation"]["animation"]["remote"]["id"]
+        },
+        "thumbnail": {
+            "@type": "inputThumbnail",
+            "width": int(content["animation"]["thumbnail"]["width"]*0.5),
+            "height": int(content["animation"]["thumbnail"]["height"]*0.5),
+            "thumbnail": {
+                "@type": "inputFileRemote",
+                "id": content["animation"]["thumbnail"]["photo"]["remote"]["id"]
+            }
+        },
+        "duration": content["animation"]["duration"],
+        "width": content["animation"]["width"],
+        "height": content["animation"]["height"]
+    }
+    return input_message_content
+
+
     
 
 def sendTdlibParameters(client):
@@ -161,6 +265,7 @@ def main():
               }
             }
             """
+            msg_text = None
             if res_type=="updateNewMessage":
                 msg = result["message"]
                 if not msg["is_outgoing"]:# and not "messageSendingStatePending" in result:
@@ -178,34 +283,21 @@ def main():
                                 else:
                                     reply_text = "Some message received with no `text` field in `content.text`, `content.text`=`\"%s\"`" % json.dumps(content_text)
                             else:
-                                #reply_text = "Some message received with no `text` field in `content`"
-                                if content_at_type == "messageSticker":
-                                    try:
-                                        input_message_content = {
-                                            "@type": "inputMessageSticker", # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1input_message_sticker.html#a32993a144616da02b107492376eae63a
-                                            "sticker": {
-                                                "@type": "inputFileRemote",
-                                                "id": content["sticker"]["sticker"]["remote"]["id"]
-                                            },
-                                            "thumbnail": {
-                                                "@type": "inputThumbnail",
-                                                "width": int(content["sticker"]["thumbnail"]["width"]*0.5),
-                                                "height": int(content["sticker"]["thumbnail"]["height"]*0.5),
-                                                "thumbnail": {
-                                                    "@type": "inputFileRemote",
-                                                    "id": content["sticker"]["thumbnail"]["photo"]["remote"]["id"]
-                                                }
-                                            },
-                                            "width": content["sticker"]["width"],
-                                            "height": content["sticker"]["height"]
-                                        }
-                                        reply_with_text = False
-                                    except Exception as ex:
-                                        print ("Exception while `Failed to format `inputMessageSticker` in reply to incoming `messageSticker``:", ex)
-                                        from traceback import print_exc as tb
-                                        tb()
-                                        reply_with_text = True
-                                        reply_text = "Failed to format `inputMessageSticker` in reply to incoming `messageSticker`"
+                                try:
+                                    reply_with_text = False
+                                    if content_at_type == "messageAnimation": input_message_content = compose_input_message_content_for_messageAnimation(result, msg, content)
+                                    else:
+                                        if content_at_type == "messageSticker": input_message_content = compose_input_message_content_for_messageSticker(result, msg, content)
+                                        else:
+                                            reply_with_text = True
+                                            reply_text = "Some message received with no `text` field in `content`, and it's neither `messageSticker` nor `messageAnimation`."
+                                except Exception as ex:
+                                    reply_with_text = True
+                                    reply_text = "Exception while `Failed to format a reply to incoming `messageAnimation` or `messageSticker``: %s" % str(ex)
+                                    print (reply_text)
+                                    from traceback import print_exc as tb
+                                    tb()
+                            ###1
                         else:
                             reply_text = "Some message received with no `content` field in `message`"
                         if reply_with_text:
