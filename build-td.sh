@@ -17,7 +17,7 @@ echo "Also see https://github.com/tdlib/td#building for additional details on TD
 #build_type="Release"
 build_type="Debug"
 cmake -DCMAKE_BUILD_TYPE=$build_type -DCMAKE_INSTALL_PREFIX:PATH=../example/cpp/td ..
-cmake --build . -j $cores --target install
+cmake --build . --target install -- -j $cores
 
 popd
 
