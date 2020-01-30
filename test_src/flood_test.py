@@ -166,12 +166,62 @@ def main():
                 if not msg["is_outgoing"]:# and not "messageSendingStatePending" in result:
                     sender_user_id = msg["sender_user_id"]
                     if int(local_vars.LOCAL_BOT_USER_ID_STR) != int(sender_user_id): #skip messages from self
-                        msg_text = "is not a text message, using a const msg"
-                        try:
-                            msg_text = msg["content"]["text"]["text"]
-                        except:
-                            pass
-                        reply = { "@type": "sendMessage", "chat_id": local_vars.LOCAL_CHAT_ID_STR, "@extra": 3, "input_message_content": {"@type": "inputMessageText", "text":{"@type":"formattedText","text": "some message received with text '%s'" % msg_text}} }
+                        reply_with_text = True
+                        if "content" in msg:
+                            content = msg["content"]
+                            content_at_type = content["@type"]
+                            if "text" in content:
+                                content_text = content["text"]
+                                if "text" in content_text:
+                                    msg_text = content_text["text"]
+                                    reply_text = "A message received with text `\"%s\"`" % msg_text
+                                else:
+                                    reply_text = "Some message received with no `text` field in `content.text`, `content.text`=`\"%s\"`" % json.dumps(content_text)
+                            else:
+                                #reply_text = "Some message received with no `text` field in `content`"
+                                if content_at_type == "messageSticker":
+                                    try:
+                                        input_message_content = {
+                                            "@type": "inputMessageSticker", # https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1input_message_sticker.html#a32993a144616da02b107492376eae63a
+                                            "sticker": {
+                                                "@type": "inputFileRemote",
+                                                "id": content["sticker"]["sticker"]["remote"]["id"]
+                                            },
+                                            "thumbnail": {
+                                                "@type": "inputThumbnail",
+                                                "width": int(content["sticker"]["thumbnail"]["width"]*0.5),
+                                                "height": int(content["sticker"]["thumbnail"]["height"]*0.5),
+                                                "thumbnail": {
+                                                    "@type": "inputFileRemote",
+                                                    "id": content["sticker"]["thumbnail"]["photo"]["remote"]["id"]
+                                                }
+                                            },
+                                            "width": content["sticker"]["width"],
+                                            "height": content["sticker"]["height"]
+                                        }
+                                        reply_with_text = False
+                                    except Exception as ex:
+                                        print ("Exception while `Failed to format `inputMessageSticker` in reply to incoming `messageSticker``:", ex)
+                                        from traceback import print_exc as tb
+                                        tb()
+                                        reply_with_text = True
+                                        reply_text = "Failed to format `inputMessageSticker` in reply to incoming `messageSticker`"
+                        else:
+                            reply_text = "Some message received with no `content` field in `message`"
+                        if reply_with_text:
+                            input_message_content = {
+                                "@type": "inputMessageText", 
+                                "text": {
+                                    "@type":"formattedText",
+                                    "text": reply_text
+                                }
+                            }
+                        reply = {
+                            "@type": "sendMessage",
+                            "chat_id": local_vars.LOCAL_CHAT_ID_STR,
+                            "@extra": 3,
+                            "input_message_content": input_message_content,
+                        }
                         td_json_client_send(client, json.dumps(reply))
                         continue
             if res_type=="updateMessageSendFailed":
